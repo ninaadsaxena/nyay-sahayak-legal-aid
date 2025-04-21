@@ -1,38 +1,38 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, BookOpen, FileText } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
-const lawCategories = [
-  { id: "rental", name: "Rental Laws" },
-  { id: "property", name: "Property Rights" },
-  { id: "eviction", name: "Eviction Process" },
-  { id: "disputes", name: "Dispute Resolution" },
+// Sample Indian States
+const INDIAN_STATES = [
+  { id: "all", name: "All States" },
+  { id: "delhi", name: "Delhi" },
+  { id: "maharashtra", name: "Maharashtra" },
+  { id: "karnataka", name: "Karnataka" },
+  // Extend as needed
 ];
 
+// ... we slightly enhance the law data to demonstrate state-based laws ...
 const lawReferences = [
   {
     id: 1,
     category: "rental",
+    states: ["all", "delhi", "maharashtra"],
     title: "Rent Control Act",
     sections: [
       {
         id: "sec15",
         title: "Section 15: Protection Against Eviction",
         content: "A tenant shall not be evicted except in accordance with the provisions of this Act. The landlord must provide proper notice and valid grounds as specified in subsection (2)."
-      },
-      {
-        id: "sec18",
-        title: "Section 18: Rent Increase Limitations",
-        content: "No landlord shall increase the rent of any premises by more than 10% within a period of 12 months, unless structural alterations or improvements have been made to the premises."
       }
     ]
   },
   {
     id: 2,
     category: "property",
+    states: ["all", "karnataka"],
     title: "Transfer of Property Act, 1882",
     sections: [
       {
@@ -44,68 +44,61 @@ const lawReferences = [
   },
   {
     id: 3,
-    category: "eviction",
-    title: "Indian Penal Code",
+    category: "rental",
+    states: ["delhi"],
+    title: "Delhi Rent Control Act",
     sections: [
       {
-        id: "sec441",
-        title: "Section 441: Criminal Trespass",
-        content: "Whoever enters into or upon property in the possession of another with intent to commit an offence or to intimidate, insult or annoy any person in possession of such property, or having lawfully entered into or upon such property, unlawfully remains there with intent thereby to intimidate, insult or annoy any such person, or with intent to commit an offence, is said to commit 'criminal trespass'."
-      },
-      {
-        id: "sec448",
-        title: "Section 448: Punishment for House-trespass",
-        content: "Whoever commits house-trespass shall be punished with imprisonment of either description for a term which may extend to one year, or with fine which may extend to one thousand rupees, or with both."
+        id: "delhi1",
+        title: "Section 6: Limitation on Rent Increase",
+        content: "For Delhi, the Rent Control Act restricts yearly rent increases to a maximum of 10%. Additional tenant protections apply."
       }
     ]
   },
   {
     id: 4,
-    category: "disputes",
-    title: "Bhartiya Nyay Samhita",
-    sections: [
-      {
-        id: "sec318",
-        title: "Section 318: Protection Against Threats and Intimidation",
-        content: "This section provides protection against threats, intimidation, and coercion used to illegally dispossess a person from property they legally occupy."
-      }
-    ]
-  },
-  {
-    id: 5,
     category: "rental",
-    title: "Registration Act, 1908",
+    states: ["maharashtra"],
+    title: "Maharashtra Rent Control Act",
     sections: [
       {
-        id: "sec17",
-        title: "Section 17: Documents for which Registration is Compulsory",
-        content: "Lease agreements for periods exceeding one year or reserving a yearly rent must be registered under this Act to be legally valid and admissible as evidence in court."
+        id: "mumbai1",
+        title: "Section 12: Landlord's Duties and Tenant Protections",
+        content: "For Maharashtra, tenants cannot be evicted without court order citing valid reasons according to the state’s guidelines."
       }
     ]
   }
+  // Add more as desired
+];
+
+const lawCategories = [
+  { id: "rental", name: "Rental Laws" },
+  { id: "property", name: "Property Rights" },
+  { id: "eviction", name: "Eviction Process" },
+  { id: "disputes", name: "Dispute Resolution" },
 ];
 
 const LawReference = () => {
+  const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState("rental");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  
+  const [selectedState, setSelectedState] = useState("all");
+
   const filteredLaws = lawReferences.filter((law) => {
-    // Filter by category
     const categoryMatch = law.category === selectedCategory;
-    
-    // Filter by search query
-    if (!searchQuery) return categoryMatch;
-    
+    const stateMatch = law.states.includes(selectedState) || law.states.includes("all") || selectedState === "all";
+
+    if (!searchQuery) return categoryMatch && stateMatch;
+
     const queryLower = searchQuery.toLowerCase();
     const titleMatch = law.title.toLowerCase().includes(queryLower);
     const sectionMatch = law.sections.some(
-      (section) => 
-        section.title.toLowerCase().includes(queryLower) || 
+      (section) =>
+        section.title.toLowerCase().includes(queryLower) ||
         section.content.toLowerCase().includes(queryLower)
     );
-    
-    return categoryMatch && (titleMatch || sectionMatch);
+    return categoryMatch && stateMatch && (titleMatch || sectionMatch);
   });
 
   const toggleSection = (sectionId: string) => {
@@ -121,56 +114,64 @@ const LawReference = () => {
       <div className="container mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-primary-900 mb-4">
-            Law Reference
+            {t("Law Reference Title")}
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-            Access comprehensive information on housing and rental laws in India
+            {t("Law Reference Subtitle")}
           </p>
         </div>
-
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="relative flex-grow">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <Input
-                    placeholder="Search laws, sections, or keywords..."
-                    className="pl-10 input-field"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                <Button className="button-primary">
-                  Search Laws
-                </Button>
+            <div className="p-6 border-b border-gray-200 flex flex-col md:flex-row gap-4 items-center">
+              <div className="flex-grow w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <Input
+                  placeholder={t("Search laws, sections, or keywords...")}
+                  className="pl-10 input-field w-full"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
+              <select
+                className="border rounded px-3 py-2 text-sm bg-white text-primary-900"
+                value={selectedState}
+                onChange={e => setSelectedState(e.target.value)}
+                aria-label={t("Select State")}
+              >
+                {INDIAN_STATES.map(state => (
+                  <option value={state.id} key={state.id}>
+                    {t(state.name)}
+                  </option>
+                ))}
+              </select>
+              <Button className="button-primary">
+                {t("Search Laws")}
+              </Button>
             </div>
-
             <div className="p-6">
               <Tabs defaultValue="rental" value={selectedCategory} onValueChange={setSelectedCategory}>
                 <TabsList className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-6">
                   {lawCategories.map((category) => (
-                    <TabsTrigger 
-                      key={category.id} 
+                    <TabsTrigger
+                      key={category.id}
                       value={category.id}
                       className="data-[state=active]:bg-primary data-[state=active]:text-white"
                     >
-                      {category.name}
+                      {t(category.name)}
                     </TabsTrigger>
                   ))}
                 </TabsList>
-                
+
                 {lawCategories.map((category) => (
                   <TabsContent key={category.id} value={category.id} className="space-y-6">
                     {filteredLaws.length === 0 ? (
                       <div className="text-center py-10">
                         <BookOpen className="h-12 w-12 mx-auto text-gray-400 mb-4" />
                         <h3 className="text-lg font-medium text-gray-700">
-                          No laws found matching your search
+                          {t("No laws found matching your search")}
                         </h3>
                         <p className="text-gray-500 mt-2">
-                          Try adjusting your search terms or browse another category
+                          {t("Try adjusting your search terms or browse another category")}
                         </p>
                       </div>
                     ) : (
@@ -223,14 +224,15 @@ const LawReference = () => {
                 ))}
               </Tabs>
             </div>
-
             <div className="bg-gray-50 p-4 border-t border-gray-200 text-center">
               <p className="text-gray-600 text-sm">
-                Looking for more comprehensive legal information? Download our complete guide to housing and rental laws.
+                {t(
+                  "Looking for more comprehensive legal information? Download our complete guide to housing and rental laws."
+                )}
               </p>
               <Button variant="outline" className="mt-3">
                 <BookOpen className="mr-2 h-4 w-4" />
-                Download Complete Guide
+                {t("Download Complete Guide")}
               </Button>
             </div>
           </div>

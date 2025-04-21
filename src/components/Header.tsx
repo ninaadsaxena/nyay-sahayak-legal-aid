@@ -1,10 +1,12 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
+import LanguageSwitcher from "./LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { t } = useTranslation();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -20,37 +22,38 @@ const Header = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
               </svg>
             </div>
-            <span className="font-poppins font-bold text-primary text-xl">Nyay Sahayak</span>
+            <span className="font-poppins font-bold text-primary text-xl">{t("Nyay Sahayak")}</span>
           </a>
         </div>
 
-        {/* Desktop Navigation */}
         <nav className="hidden md:flex space-x-8">
-          <a href="#contract-analysis" className="nav-link">Contract Analysis</a>
-          <a href="#issue-resolution" className="nav-link">Issue Resolution</a>
-          <a href="#law-reference" className="nav-link">Law Reference</a>
-          <a href="#lawyer-connect" className="nav-link">Connect with Lawyers</a>
+          <a href="#contract-analysis" className="nav-link">{t("Contract Analysis")}</a>
+          <a href="#issue-resolution" className="nav-link">{t("Issue Resolution")}</a>
+          <a href="#law-reference" className="nav-link">{t("Law Reference")}</a>
+          <a href="#lawyer-connect" className="nav-link">{t("Connect with Lawyers")}</a>
         </nav>
 
-        <div className="hidden md:block">
-          <Button className="button-primary">Get Started</Button>
+        <div className="hidden md:flex gap-2 items-center">
+          <LanguageSwitcher />
+          <Button className="button-primary">{t("Get Started")}</Button>
         </div>
 
-        {/* Mobile menu button */}
         <button onClick={toggleMenu} className="md:hidden">
           {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
 
-      {/* Mobile Navigation */}
       {isMenuOpen && (
         <div className="md:hidden bg-white py-4 px-4 shadow-md animate-fade-in">
           <nav className="flex flex-col space-y-4">
-            <a href="#contract-analysis" className="nav-link" onClick={toggleMenu}>Contract Analysis</a>
-            <a href="#issue-resolution" className="nav-link" onClick={toggleMenu}>Issue Resolution</a>
-            <a href="#law-reference" className="nav-link" onClick={toggleMenu}>Law Reference</a>
-            <a href="#lawyer-connect" className="nav-link" onClick={toggleMenu}>Connect with Lawyers</a>
-            <Button className="button-primary w-full">Get Started</Button>
+            <a href="#contract-analysis" className="nav-link" onClick={toggleMenu}>{t("Contract Analysis")}</a>
+            <a href="#issue-resolution" className="nav-link" onClick={toggleMenu}>{t("Issue Resolution")}</a>
+            <a href="#law-reference" className="nav-link" onClick={toggleMenu}>{t("Law Reference")}</a>
+            <a href="#lawyer-connect" className="nav-link" onClick={toggleMenu}>{t("Connect with Lawyers")}</a>
+            <Button className="button-primary w-full">{t("Get Started")}</Button>
+            <div className="mt-2">
+              <LanguageSwitcher />
+            </div>
           </nav>
         </div>
       )}
