@@ -1,7 +1,9 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, Check, AlertCircle } from "lucide-react";
+import { pipeline } from "@huggingface/transformers";
+import { useToast } from "@/hooks/use-toast";
 
 const ContractAnalyzer = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -11,6 +13,42 @@ const ContractAnalyzer = () => {
     suggestions: string[];
   }>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [textModel, setTextModel] = useState(null);
+  const [isModelLoading, setIsModelLoading] = useState(true);
+  const { toast } = useToast();
+  const [extractedText, setExtractedText] = useState("");
+
+  // Load NLP model on component mount
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        setIsModelLoading(true);
+        // Use a sentiment analysis model for identifying problematic clauses
+        const nlpModel = await pipeline(
+          "text-classification",
+          "Xenova/distilbert-base-uncased-finetuned-sst-2-english",
+          { quantized: true }
+        );
+        setTextModel(nlpModel);
+        setIsModelLoading(false);
+        
+        toast({
+          title: "Analysis models loaded",
+          description: "The contract analysis system is ready to use",
+        });
+      } catch (error) {
+        console.error("Error loading models:", error);
+        toast({
+          variant: "destructive",
+          title: "Error loading models",
+          description: "Using fallback analysis method",
+        });
+        setIsModelLoading(false);
+      }
+    };
+
+    loadModels();
+  }, [toast]);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -41,51 +79,280 @@ const ContractAnalyzer = () => {
     // Check if the file is a PDF or DOC
     const validTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     if (!validTypes.includes(file.type)) {
-      alert('Please upload a PDF or Word document');
+      toast({
+        variant: "destructive",
+        title: "Invalid file type",
+        description: "Please upload a PDF or Word document",
+      });
       return;
     }
 
     setFile(file);
     setAnalysisResult(null);
+    
+    // In a production environment, we would use a document parsing service
+    // For this demo, we'll simulate text extraction
+    simulateTextExtraction(file);
   };
 
-  const analyzeContract = () => {
-    // Mock analysis process
-    setIsAnalyzing(true);
-    setTimeout(() => {
-      setIsAnalyzing(false);
-      // Mock results
-      setAnalysisResult({
-        issues: [
-          {
-            title: "Ambiguous Notice Period",
-            description: "Clause 8 specifies an ambiguous notice period for termination that may not comply with the Rent Control Act.",
-            severity: "high"
-          },
-          {
-            title: "Illegal Security Deposit Amount",
-            description: "The security deposit exceeds the legal limit of 10 months' rent as per state regulations.",
-            severity: "high"
-          },
-          {
-            title: "Maintenance Responsibility Unclear",
-            description: "Clause 12 does not clearly define maintenance responsibilities between landlord and tenant.",
-            severity: "medium"
-          },
-          {
-            title: "Missing Essential Terms",
-            description: "The agreement does not specify the procedure for rent increases, which should be included.",
-            severity: "low"
-          }
-        ],
-        suggestions: [
-          "Add a specific notice period of at least 3 months as required by the Rent Control Act.",
-          "Reduce the security deposit to comply with the legal maximum of 10 months' rent.",
-          "Clearly define maintenance responsibilities in accordance with Section 108 of the Transfer of Property Act.",
-          "Include the procedure and frequency for rent revision as per local regulations."
-        ]
+  const simulateTextExtraction = (file: File) => {
+    // In a real application, this would use OCR or document parsing APIs
+    // For simulation purposes, we're creating placeholder text based on file name
+    const reader = new FileReader();
+    
+    reader.onload = () => {
+      // Simulate extracted text based on file name for demo purposes
+      let extractedText = "";
+      
+      if (file.name.toLowerCase().includes("lease") || file.name.toLowerCase().includes("rental")) {
+        extractedText = `RENTAL AGREEMENT
+        
+        This RENTAL AGREEMENT is made on [DATE] between [LANDLORD NAME] (hereinafter referred to as the "Landlord") and [TENANT NAME] (hereinafter referred to as the "Tenant").
+        
+        1. PROPERTY: The Landlord agrees to rent to the Tenant the property located at [ADDRESS].
+        
+        2. TERM: The term of this Agreement shall be for a period of 11 months, commencing on [START DATE] and ending on [END DATE].
+        
+        3. RENT: The Tenant agrees to pay a monthly rent of Rs. 25,000 payable in advance on the 1st day of each month.
+        
+        4. SECURITY DEPOSIT: The Tenant shall pay a security deposit of Rs. 300,000 (equivalent to 12 months' rent) to be held by the Landlord.
+        
+        5. UTILITIES: The Tenant shall be responsible for payment of all utilities and services.
+        
+        6. MAINTENANCE: The Tenant shall keep the premises in good condition. Major repairs shall be the responsibility of the landlord, but notification must be given within 1 day.
+        
+        7. ALTERATIONS: No alterations shall be made to the premises without prior written consent of the Landlord.
+        
+        8. TERMINATION: Either party may terminate this agreement with 15 days' notice.
+        
+        9. ENTRY: The Landlord may enter the premises at any time without notice for inspection purposes.
+        
+        10. ASSIGNMENT: The Tenant shall not assign this Agreement or sublet any part of the premises.
+        
+        11. GOVERNING LAW: This Agreement shall be governed by the laws of India.
+        
+        12. The tenant agrees to vacate the premises immediately upon request by the landlord for any reason deemed necessary by the landlord.`;
+      } else {
+        extractedText = "Standard contract agreement with typical terms and conditions. Please upload a rental or lease agreement for more specific analysis.";
+      }
+      
+      setExtractedText(extractedText);
+    };
+    
+    reader.readAsText(file); // This doesn't actually read the content of PDF/DOC, just triggers the onload event
+  };
+
+  const analyzeContract = async () => {
+    if (!extractedText) {
+      toast({
+        variant: "destructive",
+        title: "No text extracted",
+        description: "Unable to extract text from the document",
       });
-    }, 3000);
+      return;
+    }
+    
+    setIsAnalyzing(true);
+    
+    try {
+      // Split the contract into clauses for analysis
+      const clauses = extractedText.split(/\d+\./).filter(clause => clause.trim().length > 0);
+      
+      // Legal rules to check against
+      const legalRules = [
+        {
+          name: "Security Deposit Limit",
+          rule: (text) => {
+            const match = text.match(/security deposit of Rs\.\s*(\d+[,\d]*)/i);
+            if (match) {
+              const deposit = parseInt(match[1].replace(/,/g, ''));
+              const rentMatch = extractedText.match(/monthly rent of Rs\.\s*(\d+[,\d]*)/i);
+              if (rentMatch) {
+                const rent = parseInt(rentMatch[1].replace(/,/g, ''));
+                return deposit > rent * 10 ? {
+                  issue: true,
+                  severity: "high",
+                  title: "Excessive Security Deposit",
+                  description: `The security deposit (Rs. ${deposit.toLocaleString()}) exceeds the legal limit of 10 months' rent (Rs. ${(rent*10).toLocaleString()}) in many states.`
+                } : null;
+              }
+            }
+            return null;
+          }
+        },
+        {
+          name: "Notice Period",
+          rule: (text) => {
+            const match = text.toLowerCase().match(/terminate|termination|notice|vacate/);
+            if (match) {
+              const daysMatch = text.match(/(\d+)\s*days['']?\s*notice/i);
+              if (daysMatch && parseInt(daysMatch[1]) < 30) {
+                return {
+                  issue: true,
+                  severity: "high",
+                  title: "Inadequate Notice Period",
+                  description: `The notice period of ${daysMatch[1]} days is less than the legally required minimum of 30 days in most states.`
+                };
+              } else if (!daysMatch && match) {
+                return {
+                  issue: true,
+                  severity: "medium",
+                  title: "Ambiguous Notice Period",
+                  description: "The notice period for termination is not clearly specified or is ambiguous."
+                };
+              }
+            }
+            return null;
+          }
+        },
+        {
+          name: "Entry Rights",
+          rule: (text) => {
+            if (text.toLowerCase().includes("landlord may enter") && 
+                (text.toLowerCase().includes("any time") || 
+                 text.toLowerCase().includes("without notice"))) {
+              return {
+                issue: true,
+                severity: "high",
+                title: "Unreasonable Entry Rights",
+                description: "The landlord's right to enter the premises without notice or at any time violates tenant privacy rights."
+              };
+            }
+            return null;
+          }
+        },
+        {
+          name: "Tenant Obligations",
+          rule: (text) => {
+            if (text.toLowerCase().includes("tenant") && 
+                text.toLowerCase().includes("responsible") && 
+                (text.toLowerCase().includes("all repairs") || 
+                 text.toLowerCase().includes("all maintenance"))) {
+              return {
+                issue: true,
+                severity: "medium",
+                title: "Unfair Maintenance Responsibilities",
+                description: "The clause places all maintenance responsibilities on the tenant, which contradicts standard legal provisions."
+              };
+            }
+            return null;
+          }
+        },
+        {
+          name: "Immediate Eviction",
+          rule: (text) => {
+            if ((text.toLowerCase().includes("vacate") || 
+                 text.toLowerCase().includes("evict") || 
+                 text.toLowerCase().includes("terminate")) && 
+                (text.toLowerCase().includes("immediately") || 
+                 text.toLowerCase().includes("any reason") || 
+                 text.toLowerCase().includes("without cause"))) {
+              return {
+                issue: true,
+                severity: "high",
+                title: "Illegal Eviction Clause",
+                description: "The contract contains provisions allowing for immediate eviction without due process, which is illegal."
+              };
+            }
+            return null;
+          }
+        }
+      ];
+      
+      // Analyze each clause against legal rules
+      const issues = [];
+      
+      for (const clause of clauses) {
+        for (const rule of legalRules) {
+          const result = rule.rule(clause);
+          if (result && result.issue) {
+            issues.push({
+              title: result.title,
+              description: result.description,
+              severity: result.severity
+            });
+          }
+        }
+        
+        // Use NLP model to detect potentially problematic language if available
+        try {
+          if (textModel && clause.length > 10) {
+            const sentiment = await textModel(clause);
+            if (sentiment[0].label === "NEGATIVE" && sentiment[0].score > 0.75) {
+              // Check if this clause is not already flagged by rule-based system
+              const alreadyFlagged = issues.some(issue => 
+                clause.includes(issue.title) || issue.description.includes(clause.substring(0, 20))
+              );
+              
+              if (!alreadyFlagged) {
+                issues.push({
+                  title: "Potentially Unfair Clause",
+                  description: `The following clause contains potentially unfair or one-sided language: "${clause.substring(0, 100)}${clause.length > 100 ? '...' : ''}"`,
+                  severity: "medium"
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error in NLP analysis:", error);
+        }
+      }
+      
+      // Generate suggestions based on identified issues
+      const suggestions = [];
+      
+      if (issues.some(issue => issue.title.includes("Security Deposit"))) {
+        suggestions.push("Reduce the security deposit to comply with the legal maximum of 10 months' rent.");
+      }
+      
+      if (issues.some(issue => issue.title.includes("Notice Period"))) {
+        suggestions.push("Add a specific notice period of at least 30 days for termination of the agreement.");
+      }
+      
+      if (issues.some(issue => issue.title.includes("Entry Rights"))) {
+        suggestions.push("Modify landlord entry rights to require at least 24 hours notice except in emergencies.");
+      }
+      
+      if (issues.some(issue => issue.title.includes("Maintenance"))) {
+        suggestions.push("Clearly define maintenance responsibilities in accordance with Section 108 of the Transfer of Property Act.");
+      }
+      
+      if (issues.some(issue => issue.title.includes("Eviction"))) {
+        suggestions.push("Remove any clauses allowing immediate eviction without due process, as this violates tenant protection laws.");
+      }
+      
+      // Add general suggestions if specific ones aren't generated
+      if (suggestions.length === 0 && issues.length > 0) {
+        suggestions.push("Review and revise problematic clauses identified in the analysis.");
+        suggestions.push("Consult with a legal expert specialized in property law to ensure compliance with current regulations.");
+      }
+      
+      // If no issues found
+      if (issues.length === 0) {
+        issues.push({
+          title: "No Major Issues Detected",
+          description: "Our analysis did not detect any major legal issues in the contract. However, we recommend having a legal professional review the document for complete assurance.",
+          severity: "low"
+        });
+        
+        suggestions.push("Consider having a legal professional review the document for complete assurance.");
+      }
+      
+      setAnalysisResult({
+        issues,
+        suggestions
+      });
+      
+    } catch (error) {
+      console.error("Error analyzing contract:", error);
+      toast({
+        variant: "destructive",
+        title: "Analysis failed",
+        description: "There was an error analyzing the document. Please try again.",
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   return (
@@ -98,6 +365,12 @@ const ContractAnalyzer = () => {
           <p className="text-gray-600 max-w-2xl mx-auto text-lg">
             Upload your rental or property agreement to identify potential risks and legal issues
           </p>
+          {isModelLoading && (
+            <div className="mt-4 text-sm text-amber-600 bg-amber-50 p-2 rounded inline-flex items-center">
+              <AlertCircle className="h-4 w-4 mr-2" />
+              Loading analysis models...
+            </div>
+          )}
         </div>
 
         <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
@@ -148,7 +421,11 @@ const ContractAnalyzer = () => {
                   Remove
                 </Button>
               </div>
-              <Button onClick={analyzeContract} className="button-primary w-full">
+              <Button 
+                onClick={analyzeContract} 
+                className="button-primary w-full"
+                disabled={isModelLoading}
+              >
                 Analyze Contract
               </Button>
             </div>
