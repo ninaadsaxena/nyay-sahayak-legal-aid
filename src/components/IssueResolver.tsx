@@ -1,76 +1,38 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageSquare, AlertTriangle, FileText, BookOpen } from "lucide-react";
-import { pipeline } from "@huggingface/transformers";
 import { useToast } from "@/hooks/use-toast";
+import { loadLegalModel, analyzeLegalIssue, type AnalysisResult } from "@/utils/legalAnalysis";
+import { type Pipeline } from "@huggingface/transformers";
 
 const IssueResolver = () => {
   const [issueText, setIssueText] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [model, setModel] = useState(null);
+  const [model, setModel] = useState<Pipeline | null>(null);
   const [isModelLoading, setIsModelLoading] = useState(true);
   const { toast } = useToast();
-  const [analysisResult, setAnalysisResult] = useState<null | {
-    relevantLaws: { name: string; section: string; description: string }[];
-    advice: string;
-    steps: string[];
-  }>(null);
-
-  // Legal knowledge base (simplified for demo)
-  const legalDatabase = {
-    rentControl: {
-      name: "Rent Control Act",
-      sections: {
-        "15(2)": "Prohibits eviction without proper notice and valid grounds as specified by law.",
-        "8(1)": "Controls the amount of rent that can be charged in certain areas."
-      }
-    },
-    ipc: {
-      name: "IPC",
-      sections: {
-        "448": "Punishment for house-trespass. Applicable if landlord forcefully enters premises.",
-        "441": "Defines criminal trespass as entering property with intent to intimidate, insult or annoy."
-      }
-    },
-    bns: {
-      name: "Bhartiya Nyay Samhita",
-      sections: {
-        "318": "Protection against threats and intimidation.",
-        "319": "Defines punishment for intimidation and coercion."
-      }
-    },
-    transferOfPropertyAct: {
-      name: "Transfer of Property Act",
-      sections: {
-        "108": "Defines the rights and liabilities of lessor and lessee.",
-        "111": "Determines when a lease of immovable property determines (ends)."
-      }
-    }
-  };
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
 
   // Load model on component mount
   useEffect(() => {
     const loadModel = async () => {
       try {
         setIsModelLoading(true);
-        // Using text-classification pipeline for sentiment and intent analysis
-        const classifier = await pipeline(
-          "text-classification", 
-          "Xenova/distilbert-base-uncased-finetuned-sst-2-english"
-        );
-        setModel(classifier);
+        const loadedModel = await loadLegalModel();
+        setModel(loadedModel);
         setIsModelLoading(false);
         
         toast({
-          title: "NLP Model loaded",
-          description: "The legal analysis model is ready to use",
+          title: "Legal analysis model loaded",
+          description: "The Indian legal NLP model is ready to use",
         });
       } catch (error) {
-        console.error("Error loading NLP model:", error);
+        console.error("Error loading legal NLP model:", error);
         toast({
           variant: "destructive",
-          title: "Error loading NLP model",
+          title: "Error loading legal model",
           description: "Using fallback analysis method",
         });
         setIsModelLoading(false);
@@ -80,138 +42,6 @@ const IssueResolver = () => {
     loadModel();
   }, [toast]);
 
-  const analyzeLegalIssue = async (text) => {
-    // Define key legal terms to look for
-    const keywords = {
-      eviction: ["evict", "remove", "vacate", "leave", "kick out"],
-      rentIncrease: ["increase", "raise", "hike", "rent", "payment"],
-      repair: ["repair", "fix", "broken", "damage", "maintenance"],
-      deposit: ["deposit", "security", "refund", "return", "money"],
-      harassment: ["harass", "threaten", "intimidate", "bully", "pressure"],
-      trespass: ["trespass", "enter", "access", "come in", "break in"],
-      notice: ["notice", "inform", "tell", "warn", "letter"]
-    };
-
-    // Convert text to lowercase for easier matching
-    const lowerText = text.toLowerCase();
-    
-    // Identify issues in the text
-    const identifiedIssues = Object.entries(keywords).filter(([_, terms]) => 
-      terms.some(term => lowerText.includes(term))
-    ).map(([issue]) => issue);
-
-    // Get sentiment if model is available
-    let sentiment = "neutral";
-    try {
-      if (model) {
-        const result = await model(text);
-        sentiment = result[0].label;
-      }
-    } catch (error) {
-      console.error("Error analyzing sentiment:", error);
-    }
-
-    const urgency = sentiment === "NEGATIVE" ? "high" : "medium";
-    
-    // Match issues to relevant laws
-    const relevantLaws = [];
-    
-    if (identifiedIssues.includes("eviction")) {
-      relevantLaws.push({
-        name: legalDatabase.rentControl.name,
-        section: "Section 15(2)",
-        description: legalDatabase.rentControl.sections["15(2)"]
-      });
-    }
-    
-    if (identifiedIssues.includes("trespass") || identifiedIssues.includes("harassment")) {
-      relevantLaws.push({
-        name: legalDatabase.ipc.name,
-        section: "Section 448",
-        description: legalDatabase.ipc.sections["448"]
-      });
-      
-      relevantLaws.push({
-        name: legalDatabase.bns.name,
-        section: "Section 318",
-        description: legalDatabase.bns.sections["318"]
-      });
-    }
-    
-    if (identifiedIssues.includes("repair")) {
-      relevantLaws.push({
-        name: legalDatabase.transferOfPropertyAct.name,
-        section: "Section 108",
-        description: legalDatabase.transferOfPropertyAct.sections["108"]
-      });
-    }
-    
-    if (identifiedIssues.includes("rentIncrease")) {
-      relevantLaws.push({
-        name: legalDatabase.rentControl.name,
-        section: "Section 8(1)",
-        description: legalDatabase.rentControl.sections["8(1)"]
-      });
-    }
-
-    // Generate steps and advice based on identified issues
-    let advice = "";
-    let steps = [];
-    
-    if (identifiedIssues.length === 0) {
-      advice = "Based on the information provided, we couldn't identify specific legal issues. Please provide more details about your situation for a more accurate analysis.";
-      steps = ["Provide more detailed information about your housing or rental issue"];
-    } else {
-      if (identifiedIssues.includes("eviction")) {
-        advice = "Based on your situation, the landlord cannot evict you without following proper legal procedure. Threats of forceful eviction are illegal under multiple provisions of law.";
-        steps = [
-          "Document all communications with your landlord in writing",
-          "Send a formal notice citing the relevant laws that protect you as a tenant",
-          "If threats continue, file a police complaint under IPC Section 448 and BNS Section 318",
-          "Approach the Rent Control Tribunal in your district for an injunction against eviction",
-          "Consider mediation through a legal aid service for quicker resolution"
-        ];
-      } else if (identifiedIssues.includes("repair")) {
-        advice = "Your landlord has legal obligations to maintain the property in habitable condition. Section 108 of the Transfer of Property Act outlines these responsibilities.";
-        steps = [
-          "Send a written notice to your landlord detailing the required repairs",
-          "Include a reasonable deadline for completion of repairs",
-          "If repairs are not made, you may file a complaint with the local municipal authority",
-          "In extreme cases, you may have grounds to withhold rent, but consult a lawyer before doing so",
-          "Document all repair issues with photographs and written communications"
-        ];
-      } else if (identifiedIssues.includes("rentIncrease")) {
-        advice = "Rent increases are regulated in many Indian states. The landlord must follow specific procedures and cannot increase rent beyond the statutory limits.";
-        steps = [
-          "Review your rental agreement for clauses regarding rent increases",
-          "Check the applicable Rent Control Act in your state for maximum permitted increases",
-          "Request a written notice explaining the reason for the increase",
-          "If the increase exceeds legal limits, file a petition with the Rent Controller",
-          "Consider negotiating with the landlord for a mutually acceptable increase"
-        ];
-      } else if (identifiedIssues.includes("harassment") || identifiedIssues.includes("trespass")) {
-        advice = "Landlord harassment and unauthorized entry are illegal. You have legal protections under both the IPC and the new Bhartiya Nyay Samhita.";
-        steps = [
-          "Maintain a detailed log of all instances of harassment or trespass",
-          "Send a formal cease and desist letter to the landlord",
-          "File a police complaint if the harassment continues",
-          "Apply for a restraining order if necessary",
-          "Consult with a housing rights lawyer about potential civil action"
-        ];
-      }
-    }
-
-    return {
-      relevantLaws: relevantLaws.length > 0 ? relevantLaws : [{
-        name: "General Legal Information",
-        section: "N/A",
-        description: "Based on the information provided, we couldn't identify specific laws that apply to your situation. Please provide more details for a more accurate analysis."
-      }],
-      advice,
-      steps
-    };
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!issueText.trim()) return;
@@ -219,7 +49,17 @@ const IssueResolver = () => {
     setIsAnalyzing(true);
     
     try {
-      const result = await analyzeLegalIssue(issueText);
+      if (!model) {
+        throw new Error("Model not loaded");
+      }
+      
+      // Log the input text for debugging
+      console.log("Analyzing legal issue with text:", issueText);
+      
+      // Get analysis result using NLP model
+      const result = await analyzeLegalIssue(issueText, model);
+      console.log("Analysis result:", result);
+      
       setIsAnalyzing(false);
       setAnalysisResult(result);
     } catch (error) {
@@ -246,7 +86,7 @@ const IssueResolver = () => {
           {isModelLoading && (
             <div className="mt-4 text-sm text-amber-600 bg-amber-50 p-2 rounded inline-flex items-center">
               <AlertTriangle className="h-4 w-4 mr-2" />
-              Loading AI analysis model...
+              Loading Indian law NLP analysis model...
             </div>
           )}
         </div>
@@ -289,7 +129,7 @@ const IssueResolver = () => {
                 Analyzing your issue...
               </p>
               <p className="text-sm text-gray-500 mt-2">
-                Our AI is identifying relevant laws and preparing guidance
+                Our AI is identifying relevant Indian laws and preparing guidance
               </p>
             </div>
           )}
