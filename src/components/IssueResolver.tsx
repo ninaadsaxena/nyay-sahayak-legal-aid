@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,8 +57,7 @@ const IssueResolver = () => {
         // Using text-classification pipeline for sentiment and intent analysis
         const classifier = await pipeline(
           "text-classification", 
-          "Xenova/distilbert-base-uncased-finetuned-sst-2-english",
-          { quantized: true }
+          "Xenova/distilbert-base-uncased-finetuned-sst-2-english"
         );
         setModel(classifier);
         setIsModelLoading(false);

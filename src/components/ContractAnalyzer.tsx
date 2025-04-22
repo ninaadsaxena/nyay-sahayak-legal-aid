@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, Check, AlertCircle } from "lucide-react";
@@ -26,8 +25,7 @@ const ContractAnalyzer = () => {
         // Use a sentiment analysis model for identifying problematic clauses
         const nlpModel = await pipeline(
           "text-classification",
-          "Xenova/distilbert-base-uncased-finetuned-sst-2-english",
-          { quantized: true }
+          "Xenova/distilbert-base-uncased-finetuned-sst-2-english"
         );
         setTextModel(nlpModel);
         setIsModelLoading(false);
