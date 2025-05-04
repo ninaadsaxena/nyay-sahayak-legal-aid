@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { MessageSquare, AlertTriangle, FileText, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { loadLegalModel, analyzeLegalIssue, type AnalysisResult } from "@/utils/legalAnalysis";
+import { useTranslation } from "react-i18next";
 
 const IssueResolver = () => {
   const [issueText, setIssueText] = useState("");
@@ -13,6 +14,7 @@ const IssueResolver = () => {
   const [isModelLoading, setIsModelLoading] = useState(true);
   const { toast } = useToast();
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const { t } = useTranslation();
 
   // Load model on component mount
   useEffect(() => {
@@ -72,20 +74,29 @@ const IssueResolver = () => {
     }
   };
 
+  const safeTranslate = (key: string): string => {
+    try {
+      return t(key);
+    } catch (error) {
+      console.warn("Translation failed, using fallback for:", key);
+      return key;
+    }
+  };
+
   return (
     <section id="issue-resolution" className="section-padding bg-white">
       <div className="container mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-primary-900 mb-4">
-            Issue Resolution Assistant
+            {safeTranslate("Issue Resolution Assistant")}
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-            Describe your housing or rental issue to get relevant legal information and guidance
+            {safeTranslate("Describe your housing or rental issue to get relevant legal information and guidance")}
           </p>
           {isModelLoading && (
             <div className="mt-4 text-sm text-amber-600 bg-amber-50 p-2 rounded inline-flex items-center">
               <AlertTriangle className="h-4 w-4 mr-2" />
-              Loading Indian law NLP analysis model...
+              {safeTranslate("Loading Indian law NLP analysis model...")}
             </div>
           )}
         </div>
@@ -96,17 +107,17 @@ const IssueResolver = () => {
               <form onSubmit={handleSubmit}>
                 <div className="mb-6">
                   <label className="block text-gray-700 font-medium mb-2">
-                    Describe your issue
+                    {safeTranslate("Describe your issue")}
                   </label>
                   <Textarea
-                    placeholder="Example: My landlord is threatening to evict me without notice because I asked for repairs. I have a 2-year lease agreement that started 8 months ago..."
+                    placeholder={safeTranslate("Example: My landlord is threatening to evict me without notice because I asked for repairs. I have a 2-year lease agreement that started 8 months ago...")}
                     className="input-field h-40"
                     value={issueText}
                     onChange={(e) => setIssueText(e.target.value)}
                     required
                   />
                   <p className="text-sm text-gray-500 mt-2">
-                    Please provide relevant details such as rental agreement terms, duration of stay, and exact nature of the issue.
+                    {safeTranslate("Please provide relevant details such as rental agreement terms, duration of stay, and exact nature of the issue.")}
                   </p>
                 </div>
                 <Button 
@@ -115,7 +126,7 @@ const IssueResolver = () => {
                   disabled={isModelLoading}
                 >
                   <MessageSquare className="mr-2 h-4 w-4" />
-                  Get Legal Guidance
+                  {safeTranslate("Get Legal Guidance")}
                 </Button>
               </form>
             </div>
@@ -125,10 +136,10 @@ const IssueResolver = () => {
             <div className="bg-white rounded-xl shadow-md overflow-hidden p-8 text-center">
               <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
               <p className="mt-4 text-lg font-medium text-gray-800">
-                Analyzing your issue...
+                {safeTranslate("Analyzing your issue...")}
               </p>
               <p className="text-sm text-gray-500 mt-2">
-                Our AI is identifying relevant Indian laws and preparing guidance
+                {safeTranslate("Our AI is identifying relevant Indian laws and preparing guidance")}
               </p>
             </div>
           )}
@@ -136,15 +147,15 @@ const IssueResolver = () => {
           {analysisResult && (
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
               <div className="bg-primary-100 p-6 border-b border-primary-200">
-                <h3 className="text-xl font-semibold text-primary-900">Legal Analysis</h3>
-                <p className="text-gray-700 mt-1">Based on the details you provided</p>
+                <h3 className="text-xl font-semibold text-primary-900">{safeTranslate("Legal Analysis")}</h3>
+                <p className="text-gray-700 mt-1">{safeTranslate("Based on the details you provided")}</p>
               </div>
               
               <div className="p-6 space-y-8">
                 <div>
                   <h4 className="text-lg font-medium mb-4 flex items-center text-gray-800">
                     <BookOpen className="h-5 w-5 mr-2 text-primary" />
-                    Relevant Laws
+                    {safeTranslate("Relevant Laws")}
                   </h4>
                   <div className="space-y-3">
                     {analysisResult.relevantLaws.map((law, index) => (
@@ -164,7 +175,7 @@ const IssueResolver = () => {
                 <div>
                   <h4 className="text-lg font-medium mb-4 flex items-center text-gray-800">
                     <AlertTriangle className="h-5 w-5 mr-2 text-secondary-600" />
-                    Legal Advisory
+                    {safeTranslate("Legal Advisory")}
                   </h4>
                   <div className="bg-secondary-50 border-l-4 border-secondary p-4 rounded-r-lg">
                     <p className="text-gray-800">{analysisResult.advice}</p>
@@ -174,7 +185,7 @@ const IssueResolver = () => {
                 <div>
                   <h4 className="text-lg font-medium mb-4 flex items-center text-gray-800">
                     <FileText className="h-5 w-5 mr-2 text-primary" />
-                    Recommended Steps
+                    {safeTranslate("Recommended Steps")}
                   </h4>
                   <ol className="space-y-3">
                     {analysisResult.steps.map((step, index) => (
@@ -190,13 +201,13 @@ const IssueResolver = () => {
 
                 <div className="bg-gray-50 p-4 rounded-lg mt-6">
                   <p className="text-sm text-gray-500">
-                    <strong>Disclaimer:</strong> This analysis is based on AI interpretation of the information provided and should not be considered as a substitute for professional legal advice. Please consult with a qualified lawyer for specific legal counsel.
+                    <strong>{safeTranslate("Disclaimer")}:</strong> {safeTranslate("This analysis is based on AI interpretation of the information provided and should not be considered as a substitute for professional legal advice. Please consult with a qualified lawyer for specific legal counsel.")}
                   </p>
                 </div>
 
                 <div className="flex space-x-4">
                   <Button className="button-primary flex-1">
-                    Download Advisory
+                    {safeTranslate("Download Advisory")}
                   </Button>
                   <Button
                     variant="outline"
@@ -206,7 +217,7 @@ const IssueResolver = () => {
                     }}
                     className="flex-1"
                   >
-                    Start New Inquiry
+                    {safeTranslate("Start New Inquiry")}
                   </Button>
                 </div>
               </div>

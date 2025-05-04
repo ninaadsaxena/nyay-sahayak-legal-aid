@@ -7,7 +7,7 @@ import en from "./locales/en.json";
 import hi from "./locales/hi.json";
 
 // Initialize i18next
-const i18nInstance = i18n
+i18n
   .use(initReactI18next)
   .init({
     resources: {
@@ -21,5 +21,4 @@ const i18nInstance = i18n
     },
   });
 
-// Ensure i18n is initialized before exporting
 export default i18n;
