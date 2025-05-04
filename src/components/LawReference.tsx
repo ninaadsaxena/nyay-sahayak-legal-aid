@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,7 +65,7 @@ const lawReferences = [
       {
         id: "mumbai1",
         title: "Section 12: Landlord's Duties and Tenant Protections",
-        content: "For Maharashtra, tenants cannot be evicted without court order citing valid reasons according to the state’s guidelines."
+        content: "For Maharashtra, tenants cannot be evicted without court order citing valid reasons according to the state's guidelines."
       }
     ]
   }
@@ -109,24 +110,34 @@ const LawReference = () => {
     }
   };
 
+  // Fallback translation function in case i18n context is not available
+  const safeT = (key: string): string => {
+    try {
+      return t(key);
+    } catch (error) {
+      console.warn("Translation failed, using fallback for:", key);
+      return key;
+    }
+  };
+
   return (
     <section id="law-reference" className="section-padding bg-white">
       <div className="container mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-primary-900 mb-4">
-            {t("Law Reference Title")}
+            {safeT("Law Reference Title")}
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-            {t("Law Reference Subtitle")}
+            {safeT("Law Reference Subtitle")}
           </p>
         </div>
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
             <div className="p-6 border-b border-gray-200 flex flex-col md:flex-row gap-4 items-center">
-              <div className="flex-grow w-full">
+              <div className="flex-grow w-full relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <Input
-                  placeholder={t("Search laws, sections, or keywords...")}
+                  placeholder={safeT("Search laws, sections, or keywords...")}
                   className="pl-10 input-field w-full"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -136,16 +147,16 @@ const LawReference = () => {
                 className="border rounded px-3 py-2 text-sm bg-white text-primary-900"
                 value={selectedState}
                 onChange={e => setSelectedState(e.target.value)}
-                aria-label={t("Select State")}
+                aria-label={safeT("Select State")}
               >
                 {INDIAN_STATES.map(state => (
                   <option value={state.id} key={state.id}>
-                    {t(state.name)}
+                    {safeT(state.name)}
                   </option>
                 ))}
               </select>
               <Button className="button-primary">
-                {t("Search Laws")}
+                {safeT("Search Laws")}
               </Button>
             </div>
             <div className="p-6">
@@ -157,7 +168,7 @@ const LawReference = () => {
                       value={category.id}
                       className="data-[state=active]:bg-primary data-[state=active]:text-white"
                     >
-                      {t(category.name)}
+                      {safeT(category.name)}
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -168,10 +179,10 @@ const LawReference = () => {
                       <div className="text-center py-10">
                         <BookOpen className="h-12 w-12 mx-auto text-gray-400 mb-4" />
                         <h3 className="text-lg font-medium text-gray-700">
-                          {t("No laws found matching your search")}
+                          {safeT("No laws found matching your search")}
                         </h3>
                         <p className="text-gray-500 mt-2">
-                          {t("Try adjusting your search terms or browse another category")}
+                          {safeT("Try adjusting your search terms or browse another category")}
                         </p>
                       </div>
                     ) : (
@@ -226,13 +237,13 @@ const LawReference = () => {
             </div>
             <div className="bg-gray-50 p-4 border-t border-gray-200 text-center">
               <p className="text-gray-600 text-sm">
-                {t(
+                {safeT(
                   "Looking for more comprehensive legal information? Download our complete guide to housing and rental laws."
                 )}
               </p>
               <Button variant="outline" className="mt-3">
                 <BookOpen className="mr-2 h-4 w-4" />
-                {t("Download Complete Guide")}
+                {safeT("Download Complete Guide")}
               </Button>
             </div>
           </div>

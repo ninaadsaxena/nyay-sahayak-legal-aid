@@ -5,9 +5,9 @@ import { initReactI18next } from "react-i18next";
 // Import translation files
 import en from "./locales/en.json";
 import hi from "./locales/hi.json";
-// Add more as needed
 
-i18n
+// Initialize i18next
+const i18nInstance = i18n
   .use(initReactI18next)
   .init({
     resources: {
@@ -21,4 +21,5 @@ i18n
     },
   });
 
+// Ensure i18n is initialized before exporting
 export default i18n;

@@ -5,12 +5,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { MessageSquare, AlertTriangle, FileText, BookOpen } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { loadLegalModel, analyzeLegalIssue, type AnalysisResult } from "@/utils/legalAnalysis";
-import { type Pipeline } from "@huggingface/transformers";
 
 const IssueResolver = () => {
   const [issueText, setIssueText] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [model, setModel] = useState<Pipeline | null>(null);
+  const [model, setModel] = useState<any>(null);
   const [isModelLoading, setIsModelLoading] = useState(true);
   const { toast } = useToast();
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
